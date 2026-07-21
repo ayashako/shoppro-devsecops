@@ -1,0 +1,20 @@
+{
+  "name": "shoppro-order-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Order processing microservice",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.750.0",
+    "cors": "2.8.5",
+    "express": "4.21.2",
+    "helmet": "8.0.0"
+  }
+}

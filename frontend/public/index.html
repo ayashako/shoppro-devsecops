@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopPro Online</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">Cloud-native demo application</p>
+      <h1>ShopPro Online</h1>
+      <p>Browse products and create a sample order.</p>
+    </div>
+    <div class="status" id="status">Connecting to services…</div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Products</h2>
+      <div id="products" class="product-grid"></div>
+    </section>
+
+    <section class="order-panel">
+      <h2>Create order</h2>
+      <form id="order-form">
+        <label>
+          Customer name
+          <input id="customer-name" name="customerName" required minlength="2" maxlength="80">
+        </label>
+
+        <label>
+          Product
+          <select id="product-id" name="productId" required></select>
+        </label>
+
+        <label>
+          Quantity
+          <input id="quantity" name="quantity" type="number" min="1" max="10" value="1" required>
+        </label>
+
+        <button type="submit">Place order</button>
+      </form>
+      <pre id="order-result" aria-live="polite"></pre>
+    </section>
+  </main>
+
+  <script src="/config.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

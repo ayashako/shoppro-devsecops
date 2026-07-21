@@ -1,0 +1,39 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: shoppro-frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      product-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+    networks:
+      - shoppro-network
+    restart: unless-stopped
+
+  product-service:
+    build:
+      context: ./services/product-service
+    container_name: shoppro-product-service
+    ports:
+      - "3001:3001"
+    networks:
+      - shoppro-network
+    restart: unless-stopped
+
+  order-service:
+    build:
+      context: ./services/order-service
+    container_name: shoppro-order-service
+    ports:
+      - "3002:3002"
+    networks:
+      - shoppro-network
+    restart: unless-stopped
+
+networks:
+  shoppro-network:
+    driver: bridge
