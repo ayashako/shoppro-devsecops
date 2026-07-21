@@ -1,0 +1,113 @@
+name: ShopPro CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: shoppro-cluster
+  ECR_REGISTRY: 278540902725.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  deploy:
+    name: Build, Push and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::278540902725:role/ShopPro-GitHubActions-Role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" |
+          docker login \
+            --username AWS \
+            --password-stdin "$ECR_REGISTRY"
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA::12}" >> "$GITHUB_ENV"
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            -t "$ECR_REGISTRY/shoppro-frontend:$IMAGE_TAG" \
+            ./frontend
+
+      - name: Build product-service image
+        run: |
+          docker build \
+            -t "$ECR_REGISTRY/shoppro-product-service:$IMAGE_TAG" \
+            ./services/product-service
+
+      - name: Build order-service image
+        run: |
+          docker build \
+            -t "$ECR_REGISTRY/shoppro-order-service:$IMAGE_TAG" \
+            ./services/order-service
+
+      - name: Push images to ECR
+        run: |
+          docker push "$ECR_REGISTRY/shoppro-frontend:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/shoppro-product-service:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/shoppro-order-service:$IMAGE_TAG"
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig \
+            --region "$AWS_REGION" \
+            --name "$EKS_CLUSTER_NAME"
+
+      - name: Deploy backend manifests
+        run: kubectl apply -f k8s/backend.yaml
+
+      - name: Deploy frontend manifest
+        run: kubectl apply -f k8s/frontend.yaml
+
+      - name: Update Kubernetes images
+        run: |
+          kubectl set image deployment/frontend \
+            frontend="$ECR_REGISTRY/shoppro-frontend:$IMAGE_TAG" \
+            -n shoppro
+
+          kubectl set image deployment/product-service \
+            product-service="$ECR_REGISTRY/shoppro-product-service:$IMAGE_TAG" \
+            -n shoppro
+
+          kubectl set image deployment/order-service \
+            order-service="$ECR_REGISTRY/shoppro-order-service:$IMAGE_TAG" \
+            -n shoppro
+
+      - name: Verify deployment rollouts
+        run: |
+          kubectl rollout status deployment/frontend \
+            -n shoppro \
+            --timeout=180s
+
+          kubectl rollout status deployment/product-service \
+            -n shoppro \
+            --timeout=180s
+
+          kubectl rollout status deployment/order-service \
+            -n shoppro \
+            --timeout=180s
+
+      - name: Show deployed resources
+        run: |
+          kubectl get pods -n shoppro
+          kubectl get services -n shoppro
