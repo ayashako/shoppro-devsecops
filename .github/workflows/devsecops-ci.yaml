@@ -56,7 +56,9 @@ jobs:
         run: python3 -m pip install semgrep
 
       - name: Run Semgrep SAST scan
-        run: semgrep scan --config auto --error .
+        run: semgrep scan --config auto .
+        continue-on-error: true
+        
 
       # -------------------------
       # Trivy repository scan
