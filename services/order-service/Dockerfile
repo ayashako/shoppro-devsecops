@@ -4,11 +4,24 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --chown=node:node package*.json ./
+COPY package.json package-lock.json ./
 
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 COPY --chown=node:node src ./src
+
+# Remove build-time package managers from the final runtime image.
+RUN rm -rf \
+      /usr/local/lib/node_modules/npm \
+      /usr/local/lib/node_modules/corepack \
+      /opt/yarn-v* \
+    && rm -f \
+      /usr/local/bin/npm \
+      /usr/local/bin/npx \
+      /usr/local/bin/corepack \
+      /usr/local/bin/yarn \
+      /usr/local/bin/yarnpkg \
+    && chown -R node:node /app
 
 EXPOSE 3002
 
