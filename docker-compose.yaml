@@ -19,6 +19,8 @@ services:
     networks:
       - shoppro-network
     restart: unless-stopped
+    mem_limit: 180m
+    cpus: 0.25
 
   product-service:
     build:
@@ -32,6 +34,8 @@ services:
     networks:
       - shoppro-network
     restart: unless-stopped
+    mem_limit: 150m
+    cpus: 0.20
 
   order-service:
     build:
@@ -46,7 +50,71 @@ services:
     networks:
       - shoppro-network
     restart: unless-stopped
+    mem_limit: 180m
+    cpus: 0.20
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: shoppro-cadvisor
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - shoppro-network
+    restart: unless-stopped
+    mem_limit: 200m
+    cpus: 0.30
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: shoppro-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=2d"
+    depends_on:
+      - cadvisor
+    networks:
+      - shoppro-network
+    restart: unless-stopped
+    mem_limit: 350m
+    cpus: 0.50
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: shoppro-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - shoppro-network
+    restart: unless-stopped
+    mem_limit: 250m
+    cpus: 0.40
 
 networks:
   shoppro-network:
     driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
